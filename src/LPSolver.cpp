@@ -1,6 +1,10 @@
 #include <iostream>
-#include <vector>
-#include "lp_solver.h"
+#include <limits>
+#include "LPSolver.h"
+
+inline bool is_zero(double v) {
+    return v < std::numeric_limits<double>::epsilon() && v > -std::numeric_limits<double>::epsilon();
+}
 
 LPSolver::LPSolver() {
 }
@@ -8,9 +12,9 @@ LPSolver::LPSolver() {
 LPSolver::~LPSolver() {
 }
 
-void LPSolver::init(const Eigen::VectorXf& object,
-        const Eigen::MatrixXf& constraint,
-        const Eigen::VectorXf& maximum) {
+void LPSolver::init(const Eigen::VectorXd& object,
+        const Eigen::MatrixXd& constraint,
+        const Eigen::VectorXd& maximum) {
     /**
      * 加入松弛变量和人工变量后，表达式变为
      * (1) z - c * x = y (y初始为0)
@@ -21,9 +25,9 @@ void LPSolver::init(const Eigen::VectorXf& object,
      * 通过线性变换，使得c >= 0
      * 因x >= 0，令所有非基础变量的值为0，此时 z = y 为最大值
      */
-    Eigen::VectorXf c;
-    Eigen::MatrixXf A;
-    Eigen::VectorXf b;
+    Eigen::VectorXd c;
+    Eigen::MatrixXd A;
+    Eigen::VectorXd b;
 
     // 真正要求的变量
     var_num_ = constraint.cols();
@@ -39,14 +43,14 @@ void LPSolver::init(const Eigen::VectorXf& object,
 
     // 设置目标函数
     c.resize(var_num_ + slack_var_num_ + artificial_var_num_);
-    c << -1 * object, Eigen::VectorXf::Zero(slack_var_num_),
-       BIG_M * Eigen::VectorXf::Ones(artificial_var_num_);
+    c << -1 * object, Eigen::VectorXd::Zero(slack_var_num_),
+       BIG_M * Eigen::VectorXd::Ones(artificial_var_num_);
 
     // 设置A, b
     A.resize(constraint.rows(), var_num_ + slack_var_num_ + artificial_var_num_);
     A << constraint,
-      Eigen::MatrixXf::Identity(slack_var_num_, slack_var_num_),
-      Eigen::MatrixXf::Zero(constraint.rows(), artificial_var_num_);
+      Eigen::MatrixXd::Identity(slack_var_num_, slack_var_num_),
+      Eigen::MatrixXd::Zero(constraint.rows(), artificial_var_num_);
     b = maximum;
 
     // 设置人工变量
@@ -62,7 +66,7 @@ void LPSolver::init(const Eigen::VectorXf& object,
     }
 
     // 写成矩阵形式
-    equations_ = Eigen::MatrixXf::Zero(A.rows() + 1, A.cols() + 1);
+    equations_ = Eigen::MatrixXd::Zero(A.rows() + 1, A.cols() + 1);
     equations_ << c.transpose(), 0,
                   A, b;
 
@@ -149,7 +153,7 @@ std::tuple<bool, int> LPSolver::is_basic_variable(int col) {
     int row = 0;
     int non_zero_coeff_num = 0;
     for (auto i = 0; i < equations_.rows(); i++) {
-        if (equations_(i, col) == 0) {
+        if (is_zero(equations_(i, col))) {
             continue;
         }
         row = i;

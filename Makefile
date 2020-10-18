@@ -1,6 +1,8 @@
 G++ = g++
 G++_FLAGS = -std=c++17 -c -Wall -Ideps/eigen-3.3.8
 
+LD_FLAGS = -lgtest -lpthread
+
 SOURCE_FILE = $(wildcard *.cpp) $(wildcard ./*/*.cpp)
 OBJECTS = $(patsubst %.cpp, %.o, $(SOURCE_FILE))
 TARGET = solver

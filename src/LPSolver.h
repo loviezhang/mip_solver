@@ -1,5 +1,5 @@
 /**
- * @file lp_solver.h
+ * @file LPSolver.h
  * @brief 线性规划问题求解，实现方案参考：https://brilliant.org/wiki/linear-programming/
  * @author zhangwuxu
  * @version 1.0
@@ -9,6 +9,7 @@
 #pragma once
 
 #include <tuple>
+#include <vector>
 #include <Eigen/Dense>
 
 /**
@@ -34,9 +35,9 @@ public:
      * @param maximum
      *   同constraint。
      */
-    void init(const Eigen::VectorXf& object,
-            const Eigen::MatrixXf& constraint,
-            const Eigen::VectorXf& maximum);
+    void init(const Eigen::VectorXd& object,
+            const Eigen::MatrixXd& constraint,
+            const Eigen::VectorXd& maximum);
 
     /**
      * @brief 求解
@@ -97,7 +98,7 @@ protected:
     std::tuple<float, int> min_object_coeff();
 
 protected:
-    Eigen::MatrixXf equations_;
+    Eigen::MatrixXd equations_;
     int var_num_;
     int slack_var_num_;
     int artificial_var_num_;
