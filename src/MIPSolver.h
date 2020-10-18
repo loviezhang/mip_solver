@@ -10,6 +10,8 @@
 
 #include <vector>
 #include <tuple>
+#include <memory>
+#include <unordered_map>
 #include <Eigen/Dense>
 
 class MIPSolver {
@@ -31,6 +33,7 @@ public:
      *   同constraint。
      * @param bin_var_num
      *   0-1变量的数量，建模时要保证0-1变量都在前面。如x1...x5是0-1变量，x6...x7是非0-1变量
+     *   对于0-1变量，不需要额外添加x <= 1或是x >= 0的约束
      */
     void init(const Eigen::VectorXd& object,
             const Eigen::MatrixXd& constraint,
@@ -47,4 +50,8 @@ public:
 protected:
 
 protected:
+    Eigen::VectorXd object_;
+    Eigen::MatrixXd constraint_;
+    Eigen::VectorXd maximum_;
+    int bin_var_num_;
 };

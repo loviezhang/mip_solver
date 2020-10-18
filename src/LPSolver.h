@@ -15,7 +15,7 @@
 /**
  * @brief 一个很大的数，需保证目标函数中所有的系数均小于这个数
  */
-#define BIG_M 10000.0
+#define BIG_M 1000000.0
 
 class LPSolver {
 public:
