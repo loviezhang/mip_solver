@@ -1,5 +1,6 @@
 #include <iostream>
 #include <limits>
+#include <cassert>
 #include "LPSolver.h"
 
 inline bool is_zero(double v) {
@@ -11,40 +12,6 @@ LPSolver::LPSolver() {
 
 LPSolver::~LPSolver() {
 }
-
-#if 0
-void LPSolver::row_echelon_form(Eigen::MatrixXd& m) const {
-    if (m.rows() <= m.cols()) {
-        return;
-    }
-
-    for (auto col = m.cols() - 1; col >=0; col--) {
-        auto row = m.cols() - i - 1;
-
-        // 使(row, col) 不为0
-        if (m(row, col) == 0) {
-            auto i = row + 1;
-            for (; m(i, col) == 0 || i < m.rows(); i++) {}
-
-            // 当前列已是符合条件
-            if (i == m.rows()) {
-                break;
-            }
-            m.row(row).swap(m.row(i));
-        }
-
-        // 将 > row行的元素全部变为0
-        for (auto i = row + 1; i < m.rows(); i++) {
-            if (m(i, col) == 0) {
-                continue;
-            }
-            m.row(i) -= (m(i, col) / m(row, col)) * m.row(row);
-        }
-    }
-
-    // 去除所有值全为0的行
-}
-#endif
 
 void LPSolver::init(const Eigen::VectorXd& object,
         const Eigen::MatrixXd& constraint,
@@ -125,8 +92,8 @@ void LPSolver::to_feasible_region() {
     }
 }
 
-std::tuple<bool, float, std::vector<float>> LPSolver::solve() {
-    std::vector<float> vars;
+std::tuple<bool, double, std::vector<double>> LPSolver::solve() {
+    std::vector<double> vars;
 
     to_feasible_region();
     std::cout << "to_feasible_region: " << std::endl << equations_ << std::endl;
@@ -173,9 +140,9 @@ std::tuple<bool, float, std::vector<float>> LPSolver::solve() {
     return std::make_tuple(true, maximize, vars);
 }
 
-std::tuple<float, int> LPSolver::min_object_coeff() {
+std::tuple<double, int> LPSolver::min_object_coeff() {
     int col = 0;
-    float min = equations_(0, 0);
+    double min = equations_(0, 0);
     for (auto i = 1; i < equations_.cols() - 1; i++) {
         if (equations_(0, i) >= min) {
             continue;
@@ -204,12 +171,12 @@ std::tuple<int, int, bool> LPSolver::select_basic_variable() {
 
     int row = 0;
     int b_col = equations_.cols() - 1;
-    float min = 0;
+    double min = 0;
     for (auto i = 1; i < equations_.rows(); i++) {
         if (equations_(i, col) <= 0) {
             continue;
         }
-        float v = equations_(i, b_col) / equations_(i, col);
+        double v = equations_(i, b_col) / equations_(i, col);
         if (row > 0 && min <= v) {
             continue;
         }

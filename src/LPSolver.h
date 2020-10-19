@@ -44,7 +44,7 @@ public:
      *
      * @return has_solution, maximize, variables
      */
-    std::tuple<bool, float, std::vector<float>> solve();
+    std::tuple<bool, double, std::vector<double>> solve();
 
     /**
      * @brief 固定其中一个变量的值
@@ -55,15 +55,6 @@ public:
     void set_variable(int idx, double value);
 
 protected:
-
-#if 0
-    /**
-     * @brief 转换为行阶梯阵，上三角形
-     *
-     * @param m 矩阵
-     */
-    void row_echelon_form(Eigen::MatrixXd& m) const;
-#endif
 
     /**
      * @brief 找到第一个可行解
@@ -113,7 +104,7 @@ protected:
      *
      * @return coefficient, col
      */
-    std::tuple<float, int> min_object_coeff();
+    std::tuple<double, int> min_object_coeff();
 
 protected:
     Eigen::MatrixXd equations_;

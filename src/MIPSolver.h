@@ -14,6 +14,71 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 
+class Node : std::enable_shared_from_this<Node> {
+public:
+    Node(const Eigen::VectorXd& object,
+            const Eigen::MatrixXd& constraint,
+            const Eigen::VectorXd& maximum,
+            const int& bin_var_num);
+
+    ~Node();
+
+    // 是否可行
+    bool feasible() const {
+        return feasible_;
+    }
+
+    // 是否是叶子节点
+    bool is_leaf() const {
+        return bin_var_num_ == 0;
+    }
+
+    // 是否已终止继续向下搜索
+    bool terminated() const {
+        return terminated_;
+    }
+
+    double estimite() const {
+        return estimite_;
+    }
+
+    // 回溯到父节点，若当前已经是root，返回nullptr
+    std::shared_ptr<Node> backtrack() const {
+        return parent_.lock();
+    }
+
+    // 设置为终止状态
+    void terminate();
+
+    // 继续探索，返回探索到的新节点，若当前已经是叶子节点，返回nullptr
+    std::shared_ptr<Node> spawn();
+
+protected:
+    void init();
+
+    // 找到分裂点
+    // return go_left, col
+    std::tuple<bool, int> split_point() const;
+
+protected:
+    Eigen::VectorXd object_;
+    Eigen::MatrixXd constraint_;
+    Eigen::VectorXd maximum_;
+    int bin_var_num_;
+
+    double estimite_;
+    double value_;
+    std::vector<double> variables_;
+
+    bool feasible_;
+    bool terminated_;
+
+    std::weak_ptr<Node> parent_;
+    std::shared_ptr<Node> left_;
+    std::shared_ptr<Node> right_;
+};
+
+
 class MIPSolver {
 public:
     MIPSolver();
@@ -48,10 +113,15 @@ public:
     std::tuple<bool, float, std::vector<float>> solve();
 
 protected:
+    void update_biggest_node(std::shared_ptr<Node>& cur);
+
+    bool need_backtrack(std::shared_ptr<Node>& cur);
 
 protected:
     Eigen::VectorXd object_;
     Eigen::MatrixXd constraint_;
     Eigen::VectorXd maximum_;
     int bin_var_num_;
+
+    std::shared_ptr<Node> biggest_;
 };
