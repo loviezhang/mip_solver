@@ -12,6 +12,40 @@ LPSolver::LPSolver() {
 LPSolver::~LPSolver() {
 }
 
+#if 0
+void LPSolver::row_echelon_form(Eigen::MatrixXd& m) const {
+    if (m.rows() <= m.cols()) {
+        return;
+    }
+
+    for (auto col = m.cols() - 1; col >=0; col--) {
+        auto row = m.cols() - i - 1;
+
+        // 使(row, col) 不为0
+        if (m(row, col) == 0) {
+            auto i = row + 1;
+            for (; m(i, col) == 0 || i < m.rows(); i++) {}
+
+            // 当前列已是符合条件
+            if (i == m.rows()) {
+                break;
+            }
+            m.row(row).swap(m.row(i));
+        }
+
+        // 将 > row行的元素全部变为0
+        for (auto i = row + 1; i < m.rows(); i++) {
+            if (m(i, col) == 0) {
+                continue;
+            }
+            m.row(i) -= (m(i, col) / m(row, col)) * m.row(row);
+        }
+    }
+
+    // 去除所有值全为0的行
+}
+#endif
+
 void LPSolver::init(const Eigen::VectorXd& object,
         const Eigen::MatrixXd& constraint,
         const Eigen::VectorXd& maximum) {
@@ -22,7 +56,7 @@ void LPSolver::init(const Eigen::VectorXd& object,
      * (3) x >= 0
      * 我们要找一组解，使z值最大
      *
-     * 通过线性变换，使得c >= 0
+     * 通过初等行变换，使得c >= 0
      * 因x >= 0，令所有非基础变量的值为0，此时 z = y 为最大值
      */
     Eigen::VectorXd c;
@@ -71,6 +105,9 @@ void LPSolver::init(const Eigen::VectorXd& object,
                   A, b;
 
     std::cout << "initial: " << std::endl << equations_ << std::endl;
+}
+
+void LPSolver::set_variable(int idx, double value) {
 }
 
 void LPSolver::to_feasible_region() {

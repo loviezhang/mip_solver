@@ -46,7 +46,25 @@ public:
      */
     std::tuple<bool, float, std::vector<float>> solve();
 
+    /**
+     * @brief 固定其中一个变量的值
+     *
+     * @param idx 序号，从0开始
+     * @param value 设置成多少
+     */
+    void set_variable(int idx, double value);
+
 protected:
+
+#if 0
+    /**
+     * @brief 转换为行阶梯阵，上三角形
+     *
+     * @param m 矩阵
+     */
+    void row_echelon_form(Eigen::MatrixXd& m) const;
+#endif
+
     /**
      * @brief 找到第一个可行解
      */
