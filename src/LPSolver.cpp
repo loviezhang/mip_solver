@@ -16,6 +16,12 @@ LPSolver::~LPSolver() {
 void LPSolver::init(const Eigen::VectorXd& object,
         const Eigen::MatrixXd& constraint,
         const Eigen::VectorXd& maximum) {
+    if (object.rows() == 0) {
+        equations_.resize(maximum.rows()+1, 1);
+        equations_ << 0, maximum;
+        return;
+    }
+
     /**
      * 加入松弛变量和人工变量后，表达式变为
      * (1) z - c * x = y (y初始为0)
@@ -71,7 +77,7 @@ void LPSolver::init(const Eigen::VectorXd& object,
     equations_ << c.transpose(), 0,
                   A, b;
 
-    std::cout << "initial: " << std::endl << equations_ << std::endl;
+    // std::cout << "initial: " << std::endl << equations_ << std::endl;
 }
 
 void LPSolver::set_variable(int idx, double value) {
@@ -95,24 +101,28 @@ void LPSolver::to_feasible_region() {
 std::tuple<bool, double, std::vector<double>> LPSolver::solve() {
     std::vector<double> vars;
 
+    if (equations_.cols() == 1) {
+        return std::make_tuple(equations_.minCoeff() >= 0, 0, vars);
+    }
+
     to_feasible_region();
-    std::cout << "to_feasible_region: " << std::endl << equations_ << std::endl;
+    // std::cout << "to_feasible_region: " << std::endl << equations_ << std::endl;
 
     int iterations = 0;
     while (!optimal()) {
         auto [row, col, has_solution] = next_basic_variable();
         if (!has_solution) {
-            std::cout << "no solution" << std::endl;
+            std::cout << "LP no solution" << std::endl;
             return std::make_tuple(false, 0, vars);
         }
         pivot(row, col);
 
-        std::cout << "iteration " << iterations << ":" << std::endl << equations_ << std::endl;
+        // std::cout << "iteration " << iterations << ":" << std::endl << equations_ << std::endl;
         iterations++;
     }
 
     if (!feasible_solution()) {
-        std::cout << "no solution" << std::endl;
+        std::cout << "LP no solution" << std::endl;
         return std::make_tuple(false, 0, vars);
     }
 
@@ -129,7 +139,7 @@ std::tuple<bool, double, std::vector<double>> LPSolver::solve() {
         }
     }
 
-    std::cout << "======================= solution ===================" << std::endl;
+    std::cout << "============ linear programming solution =============" << std::endl;
     std::cout << "maximize: " << maximize << std::endl;
     std::cout << "variables: ";
     for (auto& var : vars) {

@@ -1,5 +1,5 @@
 G++ = g++
-G++_FLAGS = -std=c++17 -c -Wall -Ideps/eigen-3.3.8
+G++_FLAGS = -std=c++17 -c -Wall -Ideps/eigen-3.3.8 -g
 
 LD_FLAGS = -lgtest -lpthread
 

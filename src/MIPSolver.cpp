@@ -26,15 +26,20 @@ Node::~Node() {
 }
 
 void Node::init() {
-    if (object_.rows() == 0) {
-        return;
-    }
-
     LPSolver solver;
     solver.init(object_, constraint_, maximum_);
 
-    std::vector<double> vars;
     std::tie(feasible_, estimite_, variables_) = solver.solve();
+
+    std::cout << "object: " << object_.transpose();
+    std::cout << ", maximum: " << maximum_.transpose();
+    std::cout << ", feasible: " << feasible_;
+    std::cout << ", estimite: " << estimite_;
+    std::cout << ", variables: ";
+    for (auto& var : variables_) {
+        std::cout << var << " ";
+    }
+    std::cout << std::endl;
 }
 
 std::tuple<bool, int> Node::calc_split_point() const {
@@ -57,7 +62,7 @@ std::tuple<bool, int> Node::calc_split_point() const {
     }
 
     bool go_left = true;
-    if (variables_[col] > 1-variables_[col]) {
+    if (variables_[col] < 1-variables_[col]) {
         go_left = false;
     }
 
@@ -92,6 +97,14 @@ std::shared_ptr<Node> Node::spawn() {
         node->value_ = value_;
     }
     node->on_left_side_ = go_left;
+
+    if (go_left) {
+        std::cout << "go left, split point " << split_point_
+            << " estimite " << node->estimite() << std::endl;
+    } else {
+        std::cout << "go right, split point " << split_point_
+            << " estimite " << node->estimite() << std::endl;
+    }
 
     return node;
 }
@@ -128,6 +141,7 @@ void MIPSolver::update_biggest_node(std::shared_ptr<Node>& cur) {
     }
     // 对于叶子节点，estimite就是结果
     if (biggest_ == nullptr || biggest_->estimite() < cur->estimite()) {
+        std::cout << "set biggest node" << std::endl;
         biggest_ = cur;
     }
 }
@@ -135,18 +149,22 @@ void MIPSolver::update_biggest_node(std::shared_ptr<Node>& cur) {
 bool MIPSolver::need_backtrack(std::shared_ptr<Node>& cur) {
     // 走到叶子节点
     if (cur->is_leaf()) {
+        std::cout << "is_leaf" << std::endl;
         return true;
     }
     // 不可解
-    if (cur->feasible()) {
+    if (!cur->feasible()) {
+        std::cout << "infeasible" << std::endl;
         return true;
     }
     // 已搜索完成
     if (cur->has_explored()) {
+        std::cout << "has explored" << std::endl;
         return true;
     }
     // 预估值小于biggest_node
     if (biggest_ != nullptr && cur->estimite() < biggest_->estimite()) {
+        std::cout << "less than biggest" << std::endl;
         return true;
     }
     return false;
@@ -157,6 +175,7 @@ std::tuple<bool, double, std::vector<double>> MIPSolver::get_result() const {
 
     if (biggest_ == nullptr) {
         // 无解
+        std::cout << "MIP no solution" << std::endl;
         return std::make_tuple(false, 0, vars);
     }
 
@@ -173,6 +192,7 @@ std::tuple<bool, double, std::vector<double>> MIPSolver::get_result() const {
     }
     vars.resize(object_.rows(), -1.0);
 
+    cur = path.front();
     path.pop_front();
     for (auto& child : path) {
         auto split_point = cur->split_point();
@@ -190,6 +210,14 @@ std::tuple<bool, double, std::vector<double>> MIPSolver::get_result() const {
     std::copy(biggest_->variables().begin(), biggest_->variables().end(),
             vars.begin() + bin_var_num_);
 
+    std::cout << "============ mixed integer programming solution =============" << std::endl;
+    std::cout << "maximize: " << biggest_->estimite() << std::endl;
+    std::cout << "variables: ";
+    for (auto& var : vars) {
+        std::cout << var << " ";
+    }
+    std::cout << std::endl;
+
     return std::make_tuple(true, biggest_->estimite(), vars);
 }
 
@@ -202,12 +230,15 @@ std::tuple<bool, double, std::vector<double>> MIPSolver::solve() {
 
         // 探索到底部，回溯
         if (need_backtrack(cur)) {
+            std::cout << "backtrack" << std::endl;
             cur = cur->backtrack();
             continue;
         }
 
+        std::cout << "spawn" << std::endl;
         cur = cur->spawn();
     }
+    std::cout << "search finish" << std::endl;
 
     return get_result();
 }

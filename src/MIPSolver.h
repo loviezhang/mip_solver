@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 
-class Node : std::enable_shared_from_this<Node> {
+class Node : public std::enable_shared_from_this<Node> {
 public:
     Node(const Eigen::VectorXd& object,
             const Eigen::MatrixXd& constraint,
@@ -41,6 +41,10 @@ public:
     // 预估值，对于叶子节点，预估值等于真实值
     double estimite() const {
         return estimite_ + value_;
+    }
+
+    std::shared_ptr<Node> getptr() {
+        return shared_from_this();
     }
 
     const std::vector<double>& variables() const {

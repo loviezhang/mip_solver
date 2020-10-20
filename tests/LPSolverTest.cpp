@@ -1,10 +1,6 @@
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include "utils.h"
 #include "../src/LPSolver.h"
-
-using ::testing::ElementsAre;
-
-#if 0
 
 // max  7x + 5y
 // s.t. 2x + 3y <= 90
@@ -34,9 +30,8 @@ TEST(LPSolver, Test1) {
 
     auto [has_solution, maximize, variables] = solver.solve();
 
-    ASSERT_TRUE(has_solution);
-    ASSERT_EQ(maximize, 282);
-    ASSERT_THAT(variables, ElementsAre(36, 6));
+    EXPECT_TRUE(has_solution);
+    match_result(maximize, 282, variables, {36, 6});
 }
 
 // max  7x + 5y
@@ -65,7 +60,7 @@ TEST(LPSolver, Test2) {
 
     auto [has_solution, dummy1, dummy2] = solver.solve();
 
-    ASSERT_FALSE(has_solution);
+    EXPECT_FALSE(has_solution);
 }
 
 // min   x - 10y
@@ -99,9 +94,8 @@ TEST(LPSolver, Test3) {
 
     auto [has_solution, maximize, variables] = solver.solve();
 
-    ASSERT_TRUE(has_solution);
-    ASSERT_EQ(-1 * maximize, -55);
-    ASSERT_THAT(variables, ElementsAre(5, 6));
+    EXPECT_TRUE(has_solution);
+    match_result(-1 * maximize, -55, variables, {5, 6});
 }
 
 // min  12x + 9y + 12z
@@ -139,8 +133,39 @@ TEST(LPSolver, Test4) {
 
     auto [has_solution, maximize, variables] = solver.solve();
 
-    ASSERT_TRUE(has_solution);
-    ASSERT_EQ(-1 * maximize, 696);
-    ASSERT_THAT(variables, ElementsAre(8, 40, 20));
+    EXPECT_TRUE(has_solution);
+    match_result(-1 * maximize, 696, variables, {8, 40, 20});
 }
-#endif
+
+TEST(LPSolver, Test5) {
+    Eigen::VectorXd object;
+    Eigen::MatrixXd constraint;
+    Eigen::VectorXd maximum;
+
+    maximum.resize(2);
+    maximum << -90, 120;
+
+    LPSolver solver;
+    solver.init(object, constraint, maximum);
+
+    auto [has_solution, dummy1, dummy2] = solver.solve();
+
+    EXPECT_FALSE(has_solution);
+}
+
+TEST(LPSolver, Test6) {
+    Eigen::VectorXd object;
+    Eigen::MatrixXd constraint;
+    Eigen::VectorXd maximum;
+
+    maximum.resize(2);
+    maximum << 3, 5;
+
+    LPSolver solver;
+    solver.init(object, constraint, maximum);
+
+    auto [has_solution, maximize, variables] = solver.solve();
+
+    EXPECT_TRUE(has_solution);
+    match_result(maximize, 0, variables, {});
+}
