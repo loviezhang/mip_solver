@@ -88,7 +88,7 @@ protected:
      *
      * @return row, col, has_solution
      */
-    std::tuple<int, int, bool> select_basic_variable();
+    std::tuple<int, int, bool> next_basic_variable();
 
     /**
      * @brief 判断是否是基础变量

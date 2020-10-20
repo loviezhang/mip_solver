@@ -100,7 +100,7 @@ std::tuple<bool, double, std::vector<double>> LPSolver::solve() {
 
     int iterations = 0;
     while (!optimal()) {
-        auto [row, col, has_solution] = select_basic_variable();
+        auto [row, col, has_solution] = next_basic_variable();
         if (!has_solution) {
             std::cout << "no solution" << std::endl;
             return std::make_tuple(false, 0, vars);
@@ -166,7 +166,7 @@ std::tuple<bool, int> LPSolver::is_basic_variable(int col) {
     return std::make_tuple(non_zero_coeff_num == 1, row);
 }
 
-std::tuple<int, int, bool> LPSolver::select_basic_variable() {
+std::tuple<int, int, bool> LPSolver::next_basic_variable() {
     auto [dummy, col] = min_object_coeff();
 
     int row = 0;

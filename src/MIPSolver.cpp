@@ -1,4 +1,6 @@
 #include <iostream>
+#include <algorithm>
+#include <list>
 #include "MIPSolver.h"
 #include "LPSolver.h"
 
@@ -12,8 +14,11 @@ Node::Node(const Eigen::VectorXd& object,
       , bin_var_num_(bin_var_num)
       , estimite_(0)
       , value_(0)
-      , feasible_(false)
-      , terminated_(false) {
+      , feasible_(true)
+      , split_point_(0)
+      , left_explored_(false)
+      , right_explored_(false)
+      , on_left_side_(false) {
     init();
 }
 
@@ -21,6 +26,10 @@ Node::~Node() {
 }
 
 void Node::init() {
+    if (object_.rows() == 0) {
+        return;
+    }
+
     LPSolver solver;
     solver.init(object_, constraint_, maximum_);
 
@@ -28,13 +37,14 @@ void Node::init() {
     std::tie(feasible_, estimite_, variables_) = solver.solve();
 }
 
-void Node::terminate() {
-    terminated_ = true;
-    left_ = nullptr;
-    right_ = nullptr;
-}
+std::tuple<bool, int> Node::calc_split_point() const {
+    if (left_explored_) {
+        return std::make_tuple(false, split_point_);
+    }
+    if (right_explored_) {
+        return std::make_tuple(true, split_point_);
+    }
 
-std::tuple<bool, int> Node::split_point() const {
     // 选取最接近0或1的变量
     double diff_min = 1;
     int col = 0;
@@ -55,7 +65,7 @@ std::tuple<bool, int> Node::split_point() const {
 }
 
 std::shared_ptr<Node> Node::spawn() {
-    auto [go_left, col] = split_point();
+    auto [go_left, split_point_] = calc_split_point();
 
     // 将对应位置的变量设置成已知数
     Eigen::VectorXd object(object_.rows()-1);
@@ -63,11 +73,11 @@ std::shared_ptr<Node> Node::spawn() {
     Eigen::VectorXd maximum(maximum_.rows());
     int bin_var_num = bin_var_num_ - 1;
 
-    object << object_.head(col), object_.tail(object_.rows()-col-1);
-    constraint << constraint_.block(0, 0, constraint_.rows(), col),
-                  constraint_.block(0, col+1, constraint_.rows(), constraint_.cols()-col-1);
+    object << object_.head(split_point_), object_.tail(object_.rows()-split_point_-1);
+    constraint << constraint_.block(0, 0, constraint_.rows(), split_point_),
+                  constraint_.block(0, split_point_+1, constraint_.rows(), constraint_.cols()-split_point_-1);
     if (go_left) {
-        maximum = maximum_ - constraint_.col(col);
+        maximum = maximum_ - constraint_.col(split_point_);
     } else {
         maximum = maximum_;
     }
@@ -75,12 +85,13 @@ std::shared_ptr<Node> Node::spawn() {
     auto node = std::make_shared<Node>(object, constraint, maximum, bin_var_num);
     node->parent_ = shared_from_this();
     if (go_left) {
-        left_ = node;
-        node->value_ = value_ + object_(col);
+        left_explored_ = true;
+        node->value_ = value_ + object_(split_point_);
     } else {
-        right_ = node;
+        right_explored_ = true;
         node->value_ = value_;
     }
+    node->on_left_side_ = go_left;
 
     return node;
 }
@@ -115,6 +126,7 @@ void MIPSolver::update_biggest_node(std::shared_ptr<Node>& cur) {
     if (!cur->feasible()) {
         return;
     }
+    // 对于叶子节点，estimite就是结果
     if (biggest_ == nullptr || biggest_->estimite() < cur->estimite()) {
         biggest_ = cur;
     }
@@ -129,8 +141,8 @@ bool MIPSolver::need_backtrack(std::shared_ptr<Node>& cur) {
     if (cur->feasible()) {
         return true;
     }
-    // 已设置为终止搜索
-    if (cur->terminated()) {
+    // 已搜索完成
+    if (cur->has_explored()) {
         return true;
     }
     // 预估值小于biggest_node
@@ -140,10 +152,49 @@ bool MIPSolver::need_backtrack(std::shared_ptr<Node>& cur) {
     return false;
 }
 
-std::tuple<bool, float, std::vector<float>> MIPSolver::solve() {
-    auto root = std::make_shared<Node>(object_,
-            constraint_, maximum_, bin_var_num_);
-    auto cur = root;
+std::tuple<bool, double, std::vector<double>> MIPSolver::get_result() const {
+    std::vector<double> vars;
+
+    if (biggest_ == nullptr) {
+        // 无解
+        return std::make_tuple(false, 0, vars);
+    }
+
+    std::list<std::shared_ptr<Node>> path;
+    auto cur = biggest_;
+    while (cur != nullptr) {
+        path.push_front(cur);
+        cur = cur->backtrack();
+    }
+
+    std::vector<int> var_index(bin_var_num_);
+    for (auto i = 0; i < bin_var_num_; i++) {
+        var_index[i] = i;
+    }
+    vars.resize(object_.rows(), -1.0);
+
+    path.pop_front();
+    for (auto& child : path) {
+        auto split_point = cur->split_point();
+        for (auto i = 0; i < split_point || vars[i] != -1; i++) {
+            if (vars[i] != -1) {
+                split_point++;
+            }
+        }
+
+        vars[split_point] = child->on_left_side() ? 1.0 : 0.0;
+
+        cur = child;
+    }
+
+    std::copy(biggest_->variables().begin(), biggest_->variables().end(),
+            vars.begin() + bin_var_num_);
+
+    return std::make_tuple(true, biggest_->estimite(), vars);
+}
+
+std::tuple<bool, double, std::vector<double>> MIPSolver::solve() {
+    auto cur = std::make_shared<Node>(object_, constraint_, maximum_, bin_var_num_);
 
     // 深度优先搜索
     while (cur != nullptr) {
@@ -151,7 +202,6 @@ std::tuple<bool, float, std::vector<float>> MIPSolver::solve() {
 
         // 探索到底部，回溯
         if (need_backtrack(cur)) {
-            cur->terminate();
             cur = cur->backtrack();
             continue;
         }
@@ -159,6 +209,5 @@ std::tuple<bool, float, std::vector<float>> MIPSolver::solve() {
         cur = cur->spawn();
     }
 
-    std::vector<float> vars;
-    return std::make_tuple(false, 0, vars);
+    return get_result();
 }

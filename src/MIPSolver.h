@@ -33,22 +33,32 @@ public:
         return bin_var_num_ == 0;
     }
 
-    // 是否已终止继续向下搜索
-    bool terminated() const {
-        return terminated_;
+    // 是否已完成搜索
+    bool has_explored() const {
+        return left_explored_ && right_explored_;
     }
 
+    // 预估值，对于叶子节点，预估值等于真实值
     double estimite() const {
-        return estimite_;
+        return estimite_ + value_;
+    }
+
+    const std::vector<double>& variables() const {
+        return variables_;
+    }
+
+    int split_point() const {
+        return split_point_;
+    }
+
+    bool on_left_side() const {
+        return on_left_side_;
     }
 
     // 回溯到父节点，若当前已经是root，返回nullptr
     std::shared_ptr<Node> backtrack() const {
-        return parent_.lock();
+        return parent_;
     }
-
-    // 设置为终止状态
-    void terminate();
 
     // 继续探索，返回探索到的新节点，若当前已经是叶子节点，返回nullptr
     std::shared_ptr<Node> spawn();
@@ -58,7 +68,7 @@ protected:
 
     // 找到分裂点
     // return go_left, col
-    std::tuple<bool, int> split_point() const;
+    std::tuple<bool, int> calc_split_point() const;
 
 protected:
     Eigen::VectorXd object_;
@@ -71,11 +81,15 @@ protected:
     std::vector<double> variables_;
 
     bool feasible_;
-    bool terminated_;
 
-    std::weak_ptr<Node> parent_;
-    std::shared_ptr<Node> left_;
-    std::shared_ptr<Node> right_;
+    std::shared_ptr<Node> parent_;
+
+    int split_point_;
+    bool left_explored_;
+    bool right_explored_;
+
+    // 是否是父节点的左子节点
+    bool on_left_side_;
 };
 
 
@@ -110,12 +124,14 @@ public:
      *
      * @return has_solution, maximize, variables
      */
-    std::tuple<bool, float, std::vector<float>> solve();
+    std::tuple<bool, double, std::vector<double>> solve();
 
 protected:
     void update_biggest_node(std::shared_ptr<Node>& cur);
 
     bool need_backtrack(std::shared_ptr<Node>& cur);
+
+    std::tuple<bool, double, std::vector<double>> get_result() const;
 
 protected:
     Eigen::VectorXd object_;
