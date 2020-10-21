@@ -30,7 +30,7 @@ public:
 
     // 是否是叶子节点
     bool is_leaf() const {
-        return bin_var_num_ == 0;
+        return is_leaf_;
     }
 
     // 是否已完成搜索
@@ -60,7 +60,7 @@ public:
     }
 
     // 回溯到父节点，若当前已经是root，返回nullptr
-    std::shared_ptr<Node> backtrack() const {
+    std::shared_ptr<Node> parent() const {
         return parent_;
     }
 
@@ -74,6 +74,8 @@ protected:
     // return go_left, col
     std::tuple<bool, int> calc_split_point() const;
 
+    bool valid_bin_var();
+
 protected:
     Eigen::VectorXd object_;
     Eigen::MatrixXd constraint_;
@@ -85,6 +87,7 @@ protected:
     std::vector<double> variables_;
 
     bool feasible_;
+    bool is_leaf_;
 
     std::shared_ptr<Node> parent_;
 
@@ -135,7 +138,12 @@ protected:
 
     bool need_backtrack(std::shared_ptr<Node>& cur);
 
-    std::tuple<bool, double, std::vector<double>> get_result() const;
+    std::tuple<bool, double, std::vector<double>> get_result(
+            std::shared_ptr<Node>& node) const;
+
+    int real_split_point(std::shared_ptr<Node>& node) const;
+
+    void dump_node(std::shared_ptr<Node>& node) const;
 
 protected:
     Eigen::VectorXd object_;

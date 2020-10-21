@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "../src/LPSolver.h"
 
+#if 0
 // max  7x + 5y
 // s.t. 2x + 3y <= 90
 //      3x + 2y <= 120
@@ -169,3 +170,4 @@ TEST(LPSolver, Test6) {
     EXPECT_TRUE(has_solution);
     match_result(maximize, 0, variables, {});
 }
+#endif

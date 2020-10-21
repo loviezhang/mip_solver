@@ -1,11 +1,7 @@
 #include <iostream>
-#include <limits>
 #include <cassert>
 #include "LPSolver.h"
-
-inline bool is_zero(double v) {
-    return v < std::numeric_limits<double>::epsilon() && v > -std::numeric_limits<double>::epsilon();
-}
+#include "utils.h"
 
 LPSolver::LPSolver() {
 }
@@ -21,6 +17,11 @@ void LPSolver::init(const Eigen::VectorXd& object,
         equations_ << 0, maximum;
         return;
     }
+
+    Eigen::MatrixXd full_constrant(constraint.rows(), constraint.cols()+1);
+    full_constrant << constraint, maximum;
+    std::cout << "object: " << object.transpose() << std::endl;
+    std::cout << "constraint: " << std::endl << full_constrant << std::endl;
 
     /**
      * 加入松弛变量和人工变量后，表达式变为
@@ -77,7 +78,7 @@ void LPSolver::init(const Eigen::VectorXd& object,
     equations_ << c.transpose(), 0,
                   A, b;
 
-    // std::cout << "initial: " << std::endl << equations_ << std::endl;
+    std::cout << "equations: " << std::endl << equations_ << std::endl;
 }
 
 void LPSolver::set_variable(int idx, double value) {
@@ -112,7 +113,7 @@ std::tuple<bool, double, std::vector<double>> LPSolver::solve() {
     while (!optimal()) {
         auto [row, col, has_solution] = next_basic_variable();
         if (!has_solution) {
-            std::cout << "LP no solution" << std::endl;
+            // std::cout << "LP no solution" << std::endl;
             return std::make_tuple(false, 0, vars);
         }
         pivot(row, col);
@@ -122,7 +123,7 @@ std::tuple<bool, double, std::vector<double>> LPSolver::solve() {
     }
 
     if (!feasible_solution()) {
-        std::cout << "LP no solution" << std::endl;
+        // std::cout << "LP no solution" << std::endl;
         return std::make_tuple(false, 0, vars);
     }
 
@@ -152,14 +153,7 @@ std::tuple<bool, double, std::vector<double>> LPSolver::solve() {
 
 std::tuple<double, int> LPSolver::min_object_coeff() {
     int col = 0;
-    double min = equations_(0, 0);
-    for (auto i = 1; i < equations_.cols() - 1; i++) {
-        if (equations_(0, i) >= min) {
-            continue;
-        }
-        col = i;
-        min = equations_(0, i);
-    }
+    auto min = equations_.row(0).head(equations_.cols()-1).minCoeff(&col);
     return std::make_tuple(min, col);
 }
 

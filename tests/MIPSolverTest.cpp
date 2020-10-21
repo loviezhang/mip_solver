@@ -2,6 +2,8 @@
 #include "../src/MIPSolver.h"
 #include "utils.h"
 
+#if 0
+
 // 3 11
 // 8 4   v1 w1
 // 10 5  v2 w2
@@ -30,3 +32,4 @@ TEST(MIPSolver, Test1) {
     EXPECT_TRUE(has_solution);
     match_result(maximize, 21, variables, {0, 1, 1});
 }
+#endif
