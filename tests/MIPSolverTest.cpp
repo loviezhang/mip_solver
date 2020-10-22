@@ -32,4 +32,5 @@ TEST(MIPSolver, Test1) {
     EXPECT_TRUE(has_solution);
     match_result(maximize, 21, variables, {0, 1, 1});
 }
+
 #endif
